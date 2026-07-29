@@ -40,6 +40,21 @@ namespace Gsplat.Editor
             window.Focus();
         }
 
+        public static void ShowWindowWithFile(string assetPath)
+        {
+            var window = GetWindow<GsplatMeshGenerator>("Gsplat Mesh Generator");
+            window.minSize = new Vector2(420, 560);
+            window.isProcessing = false;
+            
+            if (!string.IsNullOrEmpty(assetPath) && assetPath.EndsWith(".ply", StringComparison.OrdinalIgnoreCase))
+            {
+                window.plyFilePath = Path.Combine(Directory.GetCurrentDirectory(), assetPath);
+            }
+            
+            window.Show();
+            window.Focus();
+        }
+
         private string plyFilePath = "";
         private ExportFormat exportFormat = ExportFormat.UnityMeshAsset;
 
@@ -116,10 +131,10 @@ namespace Gsplat.Editor
             // --- Export Settings ---
             EditorGUILayout.BeginVertical("box");
             GUILayout.Label("Generation Settings", EditorStyles.boldLabel);
-            sourceCoordinates = (SourceCoordinates)EditorGUILayout.EnumPopup("Source Coordinates", sourceCoordinates);
-            exportFormat = (ExportFormat)EditorGUILayout.EnumPopup("Export Format", exportFormat);
-            generateNormals = EditorGUILayout.Toggle("Generate Normals", generateNormals);
-            autoInstantiateInScene = EditorGUILayout.Toggle("Instantiate in Scene", autoInstantiateInScene);
+            sourceCoordinates = (SourceCoordinates)EditorGUILayout.EnumPopup(new GUIContent("Source Coordinates", "The original coordinate system of the .ply file. Use RUB for standard gaussian splatting outputs."), sourceCoordinates);
+            exportFormat = (ExportFormat)EditorGUILayout.EnumPopup(new GUIContent("Export Format", "Save as a native Unity Mesh Asset or a generic OBJ file."), exportFormat);
+            generateNormals = EditorGUILayout.Toggle(new GUIContent("Generate Normals", "Calculates vertex normals for smooth shading. Disable for a smaller file size if using purely for invisible collisions."), generateNormals);
+            autoInstantiateInScene = EditorGUILayout.Toggle(new GUIContent("Instantiate in Scene", "Automatically spawn the generated mesh into the active scene with a MeshCollider attached."), autoInstantiateInScene);
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(10);
@@ -127,16 +142,16 @@ namespace Gsplat.Editor
             // --- Gaussian / Point Cloud Pre-filtering ---
             EditorGUILayout.BeginVertical("box");
             GUILayout.Label("Splat & Point Filtering", EditorStyles.boldLabel);
-            enablePointFiltering = EditorGUILayout.Toggle("Enable Point Filtering", enablePointFiltering);
+            enablePointFiltering = EditorGUILayout.Toggle(new GUIContent("Enable Point Filtering", "Filter out low quality or massive splats before building the mesh to improve speed and quality."), enablePointFiltering);
             if (enablePointFiltering)
             {
-                minOpacityThreshold = EditorGUILayout.Slider("Min Opacity (Filter Floaters)", minOpacityThreshold, 0.0f, 1.0f);
-                maxScaleCutoff = EditorGUILayout.FloatField("Max Scale Cutoff", maxScaleCutoff);
-                enableOutlierFilter = EditorGUILayout.Toggle("Enable Outlier Search Filter", enableOutlierFilter);
+                minOpacityThreshold = EditorGUILayout.Slider(new GUIContent("Min Opacity (Filter Floaters)", "Ignores transparent, ghost-like splats. Higher values produce cleaner meshes but may erode thin surfaces."), minOpacityThreshold, 0.0f, 1.0f);
+                maxScaleCutoff = EditorGUILayout.FloatField(new GUIContent("Max Scale Cutoff", "Ignores massively stretched splats that usually represent background sky or noise."), maxScaleCutoff);
+                enableOutlierFilter = EditorGUILayout.Toggle(new GUIContent("Enable Outlier Search Filter", "Removes isolated floating splats that have very few neighbors."), enableOutlierFilter);
                 if (enableOutlierFilter)
                 {
-                    outlierSearchRadius = EditorGUILayout.Slider("Outlier Search Radius", outlierSearchRadius, 0.01f, 20.0f);
-                    minNeighborsCount = EditorGUILayout.IntSlider("Min Neighbor Density", minNeighborsCount, 2, 500);
+                    outlierSearchRadius = EditorGUILayout.Slider(new GUIContent("Outlier Search Radius", "The physical distance to search for neighboring splats."), outlierSearchRadius, 0.01f, 20.0f);
+                    minNeighborsCount = EditorGUILayout.IntSlider(new GUIContent("Min Neighbor Density", "The minimum number of neighbors required within the search radius for a splat to survive."), minNeighborsCount, 2, 500);
                 }
             }
             EditorGUILayout.EndVertical();
@@ -146,8 +161,8 @@ namespace Gsplat.Editor
             // --- Reconstruction Specific Options ---
             EditorGUILayout.BeginVertical("box");
             GUILayout.Label("Reconstruction Parameters", EditorStyles.boldLabel);
-            voxelGridResolution = EditorGUILayout.IntSlider("Voxel Grid Resolution", voxelGridResolution, 32, 1024);
-            isoSurfaceThreshold = EditorGUILayout.Slider("Voxel Opacity Cutoff", isoSurfaceThreshold, 0.01f, 1.0f);
+            voxelGridResolution = EditorGUILayout.IntSlider(new GUIContent("Voxel Grid Resolution", "The density of the marching cubes grid. Higher values take longer but capture finer details."), voxelGridResolution, 32, 1024);
+            isoSurfaceThreshold = EditorGUILayout.Slider(new GUIContent("Voxel Opacity Cutoff", "The accumulated density required for a voxel to be considered solid inside the mesh."), isoSurfaceThreshold, 0.01f, 1.0f);
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(10);
@@ -155,10 +170,10 @@ namespace Gsplat.Editor
             // --- Optimization & Decimation ---
             EditorGUILayout.BeginVertical("box");
             GUILayout.Label("Optimization & Decimation", EditorStyles.boldLabel);
-            enableSimplification = EditorGUILayout.Toggle("Enable Decimation", enableSimplification);
+            enableSimplification = EditorGUILayout.Toggle(new GUIContent("Enable Decimation", "Aggressively reduce the triangle count of the final mesh using extremely fast vertex clustering."), enableSimplification);
             if (enableSimplification)
             {
-                targetTriangleCount = EditorGUILayout.IntField("Target Triangle Count", targetTriangleCount);
+                targetTriangleCount = EditorGUILayout.IntField(new GUIContent("Target Triangle Count", "Approximate target number of triangles. The algorithm will adjust spatial clustering to roughly hit this goal."), targetTriangleCount);
             }
             EditorGUILayout.EndVertical();
 

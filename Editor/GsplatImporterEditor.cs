@@ -24,7 +24,8 @@ namespace Gsplat.Editor
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("OpacityPruneThreshold"));
                 if (GUILayout.Button("Open Mesh Generator"))
                 {
-                    GsplatMeshGenerator.ShowWindow();
+                    var firstImporter = targets[0] as GsplatImporter;
+                    GsplatMeshGenerator.ShowWindowWithFile(firstImporter.assetPath);
                 }
             }
 
