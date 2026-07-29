@@ -21,7 +21,9 @@ namespace Gsplat.Editor
             Bounds bounds = new Bounds(verts[0], Vector3.zero);
             foreach (var v in verts) bounds.Encapsulate(v);
 
-            float gridCellSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) / Mathf.Max(16, Mathf.RoundToInt(Mathf.Sqrt(targetTris)));
+            // Safety limit to prevent the mesh from collapsing into a single point
+            int subdivisions = Mathf.Max(16, Mathf.RoundToInt(Mathf.Sqrt(targetTris)));
+            float gridCellSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) / subdivisions;
 
             Dictionary<Vector3Int, int> vertexClusterMap = new Dictionary<Vector3Int, int>();
             MeshData simplified = new MeshData();

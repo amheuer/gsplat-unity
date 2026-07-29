@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
@@ -17,6 +18,18 @@ namespace Gsplat.Editor
 
     public class GsplatMeshGenerator : EditorWindow
     {
+        private CancellationTokenSource cts;
+
+        private void OnDestroy()
+        {
+            if (cts != null)
+            {
+                cts.Cancel();
+                cts.Dispose();
+                cts = null;
+            }
+        }
+
         [MenuItem("Tools/Gsplat/Mesh Generator")]
         public static void ShowWindow()
         {
@@ -203,6 +216,14 @@ namespace Gsplat.Editor
                 return;
             }
 
+            if (cts != null)
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            cts = new CancellationTokenSource();
+            var token = cts.Token;
+
             isProcessing = true;
             progress = 0.05f;
             statusMessage = "Parsing .ply Header & Points...";
@@ -227,7 +248,9 @@ namespace Gsplat.Editor
                         parsed = PlyParser.FilterIsolatedOutliers(parsed, localOutlierRadius, localMinNeighbors);
                     }
                     return parsed;
-                });
+                }, token);
+                
+                token.ThrowIfCancellationRequested();
 
                 if (splats == null || splats.Count == 0)
                 {
@@ -244,7 +267,9 @@ namespace Gsplat.Editor
                 int localRes = voxelGridResolution;
                 float localIso = isoSurfaceThreshold;
 
-                MeshData rawMeshData = await Task.Run(() => VoxelReconstructor.ComputeMesh(splats, localRes, localIso));
+                MeshData rawMeshData = await Task.Run(() => VoxelReconstructor.ComputeMesh(splats, localRes, localIso), token);
+
+                token.ThrowIfCancellationRequested();
 
                 if (rawMeshData == null || rawMeshData.vertices.Count == 0)
                 {
@@ -263,7 +288,15 @@ namespace Gsplat.Editor
 
                 if (localSimplification && rawMeshData.triangles.Count / 3 > localTargetTris)
                 {
-                    rawMeshData = await Task.Run(() => MeshDecimator.SimplifyMeshData(rawMeshData, localTargetTris));
+                    rawMeshData = await Task.Run(() => MeshDecimator.SimplifyMeshData(rawMeshData, localTargetTris), token);
+                }
+                
+                token.ThrowIfCancellationRequested();
+
+                if (rawMeshData.vertices.Count < 3 || rawMeshData.triangles.Count < 3)
+                {
+                    EditorUtility.DisplayDialog("Error", "Mesh generation failed or was completely decimated into nothing. No object will be created.", "OK");
+                    return;
                 }
 
                 progress = 0.90f;
@@ -309,12 +342,24 @@ namespace Gsplat.Editor
                 {
                     string objPath = $"{outputDirectory}/{fileName}.obj";
                     MeshExporter.ExportToObj(rawMesh, objPath);
-                    AssetDatabase.Refresh();
+                    
+                    // Force Unity to import the .obj immediately so it exists on disk
+                    AssetDatabase.ImportAsset(objPath, ImportAssetOptions.ForceSynchronousImport);
+                    
                     Debug.Log($"[Gsplat Mesh Generator] OBJ exported to {objPath}");
+
+                    if (autoInstantiateInScene)
+                    {
+                        InstantiateMeshInScene(rawMesh, fileName, objPath);
+                    }
                 }
 
                 progress = 1.0f;
                 // Removed success dialog so it doesn't interrupt workflow
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log("[Gsplat Mesh Generator] Generation was canceled.");
             }
             catch (Exception ex)
             {
@@ -335,6 +380,22 @@ namespace Gsplat.Editor
             MeshCollider mc = go.AddComponent<MeshCollider>();
 
             Mesh loadedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshAssetPath);
+            
+            // If it's an OBJ, LoadAssetAtPath<Mesh> might fail because the main asset is a GameObject.
+            // We have to extract the sub-asset Mesh instead.
+            if (loadedMesh == null && meshAssetPath.EndsWith(".obj", StringComparison.OrdinalIgnoreCase))
+            {
+                var allAssets = AssetDatabase.LoadAllAssetsAtPath(meshAssetPath);
+                foreach (var asset in allAssets)
+                {
+                    if (asset is Mesh m)
+                    {
+                        loadedMesh = m;
+                        break;
+                    }
+                }
+            }
+
             mc.sharedMesh = loadedMesh != null ? loadedMesh : mesh;
 
             Selection.activeGameObject = go;

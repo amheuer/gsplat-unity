@@ -60,6 +60,13 @@ namespace Gsplat.Editor
             // Reusable single chunk transmittance buffer (takes only ~1.1 MB RAM!)
             float[,,] chunkTransmittance = new float[CHUNK_SIZE + 1, CHUNK_SIZE + 1, CHUNK_SIZE + 1];
 
+            // Precompute exponential falloff weights for dx, dy, dz from -1 to 1 (max distSq = 3)
+            float[] weightLookup = new float[4];
+            for (int i = 0; i < 4; i++)
+            {
+                weightLookup[i] = Mathf.Exp(-i * 0.5f);
+            }
+
             for (int cx = 0; cx < numChunksX; cx++)
             {
                 for (int cy = 0; cy < numChunksY; cy++)
@@ -115,8 +122,8 @@ namespace Gsplat.Editor
 
                                         if (nx >= 0 && nx < countX && ny >= 0 && ny < countY && nz >= 0 && nz < countZ)
                                         {
-                                            float distSq = (dx * dx + dy * dy + dz * dz);
-                                            float weight = Mathf.Clamp01(s.opacity * Mathf.Exp(-distSq * 0.5f));
+                                            int distSq = (dx * dx + dy * dy + dz * dz);
+                                            float weight = Mathf.Clamp01(s.opacity * weightLookup[distSq]);
                                             chunkTransmittance[nx, ny, nz] *= (1.0f - weight);
                                         }
                                     }
