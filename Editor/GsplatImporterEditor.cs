@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 using System.IO;
+using System.Linq;
+using UnityEngine;
 using UnityEditor;
 using UnityEditor.AssetImporters;
 
@@ -17,11 +19,14 @@ namespace Gsplat.Editor
             EditorGUILayout.PropertyField(serializedObject.FindProperty("Compression"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("SourceCoordinates"));
 
-            var importer = target as GsplatImporter;
-            var assetPath = importer ? importer.assetPath : string.Empty;
-            var ext = Path.GetExtension(assetPath).ToLowerInvariant();
-            if (ext == ".ply")
+            if (targets.OfType<GsplatImporter>().All(imp => Path.GetExtension(imp.assetPath).ToLowerInvariant() == ".ply"))
+            {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("OpacityPruneThreshold"));
+                if (GUILayout.Button("Open Mesh Generator"))
+                {
+                    GsplatMeshGenerator.ShowWindow();
+                }
+            }
 
             serializedObject.ApplyModifiedProperties();
             ApplyRevertGUI();
