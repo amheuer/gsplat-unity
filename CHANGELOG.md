@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Added a mesh generation pipeline for `.ply` splat files, including filtering, voxel marching cubes, simplification, and output export. The `Gsplat Mesh Generator` GUI tool  can be accesed from the import menu, the tools menu (`Tools > Gsplat > Mesh Generator`), or by right-clicking a `.ply` file. The generated mesh is saved to the `GeneratedMeshes` folder as `{{ply name}}_Mesh`. ([#43](https://github.com/wuyize25/gsplat-unity/pull/43) by [@amheuer](https://github.com/amheuer))
+
+### Fixed
+
+- Fixed a bug in `GsplatImporterEditor` where if the user selected one `.spz` file and then one `.ply` file, it would show `.ply` only options to the user. ([#43](https://github.com/wuyize25/gsplat-unity/pull/43) by [@amheuer](https://github.com/amheuer))
+
 ## [1.4.0] - 2026-07-26
 
 ### Added
