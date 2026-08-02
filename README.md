@@ -1,6 +1,6 @@
 # Gsplat
 
-[![Changelog](https://img.shields.io/badge/changelog-f15d30.svg)](./CHANGELOG.md) [![Version](https://img.shields.io/badge/version-v1.3.0-blue.svg)](https://github.com/wuyize25/gsplat-unity/releases/tag/v1.3.0) [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE.md)
+[![Changelog](https://img.shields.io/badge/changelog-f15d30.svg)](./CHANGELOG.md) [![Version](https://img.shields.io/badge/version-v1.4.0-blue.svg)](https://github.com/wuyize25/gsplat-unity/releases/tag/v1.4.0) [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE.md)
 
 A Unity package for rendering [3D Gaussian Splatting](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) (3DGS). Supports Unity 2021 and later. 
 
@@ -35,6 +35,8 @@ Most 3DGS assets are trained in Gamma space, following the official implementati
 
 - Cutouts to edit Gaussians Dynamically
 
+- Supports global sorting
+
 ## Platform Compatibility
 
 The sorting pass, built upon [b0nes164/GPUSorting](https://github.com/b0nes164/GPUSorting), requires wave / subgroups operations which are only available in D3D12, Metal or Vulkan graphics APIs. WebGPU supports the subgroup operations but Unity has not implemented it. Anything using other graphics APIs will not work. I have only tested on Windows, Mac and Android, but the compatibility of this package should be similar to [aras-p/UnityGaussianSplatting](https://github.com/aras-p/UnityGaussianSplatting).
@@ -61,7 +63,7 @@ The next steps depend on the Render Pipeline you are using:
 
 ### Import Assets
 
-Copy or drag & drop the PLY file anywhere into your project's `Assets` folder. The package will then automatically read the file and import it as a derived class of `Gsplat Asset`. The package supports two compression modes for the asset: `Uncompressed` and `Spark` (packed). The default mode is `Spark`, which is inspired by [spark.js](https://github.com/sparkjsdev/spark). You can change the compression mode in the inspector of the imported `Gsplat Asset`.
+Copy or drag & drop the PLY/SPZ file anywhere into your project's `Assets` folder. The package will then automatically read the file and import it as a derived class of `Gsplat Asset`. The package supports two compression modes for the asset: `Uncompressed` and `Spark` (packed). The default mode is `Spark`, which is inspired by [spark.js](https://github.com/sparkjsdev/spark). You can change the compression mode in the inspector of the imported `Gsplat Asset`.
 
 The `Opacity Prune Threshold` import option removes splats whose opacity (after sigmoid) is below the threshold at import time. Since overdraw of many overlapping translucent splats is the main rendering cost of Gaussian Splatting, pruning nearly transparent splats can significantly improve frame rate, and also reduces memory usage and load time. Set the slider in the inspector of the imported asset and press `Apply` to reimport; the Console then logs how many splats were pruned (e.g. `[Gsplat Import] scene.ply: pruned N / M splats (x.x%)`). Start around `0.01`–`0.05` and increase while checking the visual result (thin fog-like details disappear first — as a reference, a threshold of `0.05` removed about 40% of the splats on one of our scans with little visible change). Setting it back to `0` and reimporting fully restores the original data. Currently only supported for `.ply` import.
 
